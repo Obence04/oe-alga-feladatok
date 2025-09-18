@@ -10,14 +10,18 @@ namespace OE.ALGA.Paradigmak
     {
         void Vegrehajtas();
     }
-    public class FeladatTarolo<T> : IEnumerable<T> where T : IVegrehajthato //gatya
+    public class FeladatTarolo<T> : IEnumerable<T> where T : IVegrehajthato
     {
         protected T[] tarolo;
-        int n;
+        protected int n;
         public FeladatTarolo(int meret)
         {
             tarolo = new T[meret];
             n = 0;
+        }
+        public IEnumerator<T> GetEnumerator()
+        {
+            return BejaroLetrehozas();
         }
         public void Felvesz(T elem)
         {
@@ -30,16 +34,18 @@ namespace OE.ALGA.Paradigmak
         }
         public void MindentVegrehajt()
         {
-            foreach (T item in tarolo)
+            for (int i = 0; i < n; i++)
             {
-                item.Vegrehajtas();
+                tarolo[i].Vegrehajtas();
             }
         }
-        public IEnumerable<T> BejaroLetrehozas()
+        
+        public IEnumerator<T> BejaroLetrehozas()
         {
             FeladatTaroloBejaro<T> ftb = new FeladatTaroloBejaro<T>(tarolo, n);
-            return ftb as IEnumerable<T>;
+            return ftb;
         }
+        
     }
 
     public interface IFuggo
@@ -56,11 +62,11 @@ namespace OE.ALGA.Paradigmak
         }
         public void MindentVegrehajt()
         {
-            foreach (T item in tarolo)
+            for (int i = 0; i < n; i++)
             {
-                if (item.FuggosegTeljesul)
+                if (tarolo[i].FuggosegTeljesul)
                 {
-                    item.Vegrehajtas();
+                    tarolo[i].Vegrehajtas();
                 }
             }
         }
@@ -68,14 +74,14 @@ namespace OE.ALGA.Paradigmak
 
     public interface IEnumerable<T>
     {
-        public IEnumerator<T> BejaroLetrehozas();
+        public IEnumerator<T> GetEnumerator();
     }
 
     public interface IEnumerator<T>
     {
-        public T Aktualis { get; }
-        protected void Alaphelyzet();
-        protected bool Kovetkezo();
+        public T Current { get; }
+        public void Alaphelyzet();
+        public bool MoveNext();
 
     }
 
@@ -84,7 +90,7 @@ namespace OE.ALGA.Paradigmak
         T[] tarolo;
         int n;
         int aktualisIndex;
-        public T Aktualis { get; private set; }
+        public T Current { get { return tarolo[aktualisIndex]; } }
         public FeladatTaroloBejaro(T[] tarolo, int n)
         {
             this.tarolo = tarolo;
@@ -93,15 +99,13 @@ namespace OE.ALGA.Paradigmak
         }
         public void Alaphelyzet()
         {
-            aktualisIndex = 0;
-            Aktualis = tarolo[aktualisIndex];
+            aktualisIndex = -1;
         }
-        public bool Kovetkezo()
+        public bool MoveNext()
         {
+            aktualisIndex++;
             if (aktualisIndex < n)
             {
-                aktualisIndex++;
-                Aktualis = tarolo[aktualisIndex];
                 return true;
             }
             return false;
