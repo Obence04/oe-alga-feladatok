@@ -22,6 +22,14 @@ namespace OE.ALGA.Paradigmak
                 }
             }
         }
+        public void MindentVegrehajt()
+        {
+            for (int i = 0; i < n; i++)
+            {
+                tarolo[i].Vegrehajtas();
+            }
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             return BejaroLetrehozas();
