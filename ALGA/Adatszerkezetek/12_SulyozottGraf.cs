@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OE.ALGA.Adatszerkezetek
@@ -76,10 +77,6 @@ namespace OE.ALGA.Adatszerkezetek
             {
                 if (M[csucs, i] is not 0f) szomszedok.Beszur(i);
             }
-            //for (int i = 0; i < M.GetLength(0); i++)
-            //{
-            //    if (!float.IsNaN(M[i, csucs]) && !szomszedok.Eleme(i)) szomszedok.Beszur(i);
-            //}
             return szomszedok;
         }
 
@@ -92,13 +89,11 @@ namespace OE.ALGA.Adatszerkezetek
     {
 
         public static Szotar<V, float> Dijkstra<V, E>(SulyozottGraf<V, E> g, V start) where V : IComparable
-        //NEM MEGY A TESZT MIATT, AHOL CSÚCSMÁTRIX VAN, OTT A SZOMSZÉDSÁG NEM KÖLCSÖNÖS, A TENGELYESEN TÜKRÖZÖTT CSÚCSMÁTRIXBAN KÖLCSÖNÖS
-        //DE A TESZTBEN HIÁNYZIK A (0,4) PÁRJA, EZÉRT A TESZT SZERINT NINCS A 4-NEK SZOMSZÉDJA
         {
             HasitoSzotarTulcsordulasiTerulettel<V, float> L = new HasitoSzotarTulcsordulasiTerulettel<V, float>(g.CsucsokSzama);
             HasitoSzotarTulcsordulasiTerulettel<V, V?> P = new HasitoSzotarTulcsordulasiTerulettel<V, V?>(g.CsucsokSzama);
             KupacPrioritasosSor<V> S = new KupacPrioritasosSor<V>(g.CsucsokSzama, (x, y) => { return L.Kiolvas(x) < L.Kiolvas(y); });
-            
+
             g.Csucsok.Bejar(x =>
             {
                 L.Beir(x, float.PositiveInfinity);
@@ -110,12 +105,12 @@ namespace OE.ALGA.Adatszerkezetek
             while (!S.Ures)
             {
                 V u = S.Sorbol();
-                
+
                 g.Szomszedai(u).Bejar(x =>
                 {
                     float uert = L.Kiolvas(u);
                     float xert = L.Kiolvas(x);
-                    if (uert + g.Suly(u,x) < xert)
+                    if (uert + g.Suly(u, x) < xert)
                     {
                         L.Beir(x, uert + g.Suly(u, x));
                         P.Beir(x, u);
@@ -134,7 +129,7 @@ namespace OE.ALGA.Adatszerkezetek
             //melyik csúcsot melyikből kötöttük be
             HasitoSzotarTulcsordulasiTerulettel<V, float> K = new HasitoSzotarTulcsordulasiTerulettel<V, float>(g.CsucsokSzama);
             HasitoSzotarTulcsordulasiTerulettel<V, V> P = new HasitoSzotarTulcsordulasiTerulettel<V, V>(g.CsucsokSzama);
-            KupacPrioritasosSor<V> S = new KupacPrioritasosSor<V>(g.CsucsokSzama, (x, y) => { return K.Kiolvas(x) < K.Kiolvas(y);});
+            KupacPrioritasosSor<V> S = new KupacPrioritasosSor<V>(g.CsucsokSzama, (x, y) => { return K.Kiolvas(x) < K.Kiolvas(y); });
             Halmaz<V> halm = new FaHalmaz<V>();
             int idx = 0;
             g.Csucsok.Bejar(x =>
@@ -166,7 +161,7 @@ namespace OE.ALGA.Adatszerkezetek
             FaHalmaz<E> A = new FaHalmaz<E>();
             LancoltLista<V> CS = new LancoltLista<V>();
             g.Csucsok.Bejar(CS.Hozzafuz);
-            FaHalmaz<V> csucshalmazok = new FaHalmaz<V>();
+            DiszjunktHalmaz<V> csucshalmazok = new DiszjunktHalmaz<V>(CS);
             KupacPrioritasosSor<E> grafelsulyszerint = new KupacPrioritasosSor<E>(g.ElekSzama + 1, (x, y) => x.Suly < y.Suly);
             g.Elek.Bejar(grafelsulyszerint.Sorba);
             while (!grafelsulyszerint.Ures)
@@ -174,18 +169,55 @@ namespace OE.ALGA.Adatszerkezetek
                 E u = grafelsulyszerint.Sorbol();
                 V honnan = u.Honnan;
                 V hova = u.Hova;
-                if (!honnan.Equals(hova) && !(csucshalmazok.Eleme(honnan) && csucshalmazok.Eleme(hova)))
+                if (!csucshalmazok.Keres(honnan).Equals(csucshalmazok.Keres(hova)))
                 {
                     A.Beszur(u);
-                    g.Szomszedai(honnan).Bejar(csucshalmazok.Beszur);
-                    g.Szomszedai(hova).Bejar(x =>
-                    {
-                        if (!csucshalmazok.Eleme(x)) csucshalmazok.Beszur(x);
-                    });
-
+                    csucshalmazok.Egyesit(honnan, hova);
                 }
             }
             return A;
+        }
+        class DiszjunktHalmaz<T>
+        {
+            Dictionary<T, T> szulo;
+            Dictionary<T, int> rang;
+            public DiszjunktHalmaz(IEnumerable<T> elemek)
+            {
+                szulo = new Dictionary<T, T>();
+                rang = new Dictionary<T, int>();
+                foreach (T e in elemek)
+                {
+                    szulo[e] = e;
+                    rang[e] = 0;
+                }
+            }
+            public T Keres(T elem)
+            {
+                if (!szulo[elem].Equals(elem))
+                {
+                    szulo[elem] = Keres(szulo[elem]);
+                }
+                return szulo[elem];
+            }
+            public void Egyesit(T elem1, T elem2)
+            {
+                T gyoker1 = Keres(elem1);
+                T gyoker2 = Keres(elem2);
+                if (gyoker1.Equals(gyoker2)) return;
+                if (rang[gyoker1] < rang[gyoker2])
+                {
+                    szulo[gyoker1] = gyoker2;
+                }
+                else if (rang[gyoker1] > rang[gyoker2])
+                {
+                    szulo[gyoker2] = gyoker1;
+                }
+                else
+                {
+                    szulo[gyoker2] = gyoker1;
+                    rang[gyoker1]++;
+                }
+            }
         }
     }
 }
